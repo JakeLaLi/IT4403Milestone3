@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Books API Example</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    .result-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .result-item .image {
+      margin-right: 10px;
+    }
+    
+    .result-item .image img {
+      width: 100px;
+      height: auto;
+    }
+    
+    .result-item .title {
+      flex-grow: 1;
+    }
+    
+    .pagination {
+      margin-top: 20px;
+    }
+    
+    .pagination button {
+      margin-right: 5px;
+      padding: 5px 10px;
+      border: none;
+      background-color: #f2f2f2;
+      cursor: pointer;
+    }
+    
+    .pagination button.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Books API Example</h1>
+  
+  <form id="search-form">
+    <input type="text" id="search-input" placeholder="Enter search terms">
+    <button type="submit">Search</button>
+  </form>
+  
+  <div id="results"></div>
+  
+  <div class="pagination">
+    <button class="page-button">1</button>
+    <button class="page-button">2</button>
+    <button class="page-button">3</button>
+    <button class="page-button">4</button>
+    <button class="page-button">5</button>
+  </div>
+  
+  <p id="current-page"></p>
+  
+  <script>
+    $(document).ready(function() {
+      var searchTerm = "";
+      var currentPage = 1;
+      
+      function performSearch() {
+        var startIndex = ((currentPage - 1) * 10);
+        var url = "https://www.googleapis.com/books/v1/volumes?q=" + searchTerm + "&startIndex=" + startIndex + "&maxResults=10";
+        
+        $.getJSON(url, function(data) {
+          displayResults(data);
+        });
+      }
+      
+      function displayResults(data) {
+        var resultContainer = $("#results");
+        resultContainer.empty();
+        
+        var books = data.items;
+        for (var i = 0; i < books.length; i++) {
+          var book = books[i];
+          
+          var title = book.volumeInfo.title;
+          var coverImage = "";
+          if (book.volumeInfo.imageLinks && book.volumeInfo.imageLinks.thumbnail) {
+            coverImage = '<img src="' + book.volumeInfo.imageLinks.thumbnail + '" alt="Cover">';
+          }
+          
+          var resultItem = $('<div class="result-item">')
+            .append('<div class="image">' + coverImage + '</div>')
+            .append('<div class="title">' + title + '</div>');
+          
+          resultContainer.append(resultItem);
+        }
+        
+        var totalItems = data.totalItems;
+        var totalPages = Math.ceil(totalItems / 10);
+        var startPage = Math.max(1, currentPage - 2);
+        var endPage = Math.min(startPage + 4, totalPages);
+        startPage = Math.max(1, endPage - 4); // Adjust startPage based on the new endPage
+        
+        var pageContainer = $("#pages");
+        pageContainer.empty();
+        
+        for (var j = startPage; j <= endPage; j++) {
+          var pageButton = $('<button class="page-button">' + j + '</button>');
+          if (j === currentPage) {
+            pageButton.addClass("active");
+          }
+          pageButton.data("page", j);
+          pageContainer.append(pageButton);
+        }
+        
+        $(".page-button").click(function() {
+          currentPage = parseInt($(this).text());
+          performSearch();
+        });
+        
+        var currentPageInfo = "Page " + currentPage + " of " + totalPages;
+        $("#current-page").text(currentPageInfo);
+      }
+      
+      $("#search-form").submit(function(event) {
+        event.preventDefault();
+        searchTerm = $("#search-input").val();
+        currentPage = 1;
+        performSearch();
+      });
+      
+      $(document).on('click', '.page-button', function() {
+        currentPage = parseInt($(this).text());
+        performSearch();
+      });
+    });
+  </script>
+</body>
+</html>
+
